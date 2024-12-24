@@ -20,8 +20,8 @@ int main() {
     string fileInputName;
     string fileOutputName;
 
-    fileInputName = "C:\\NuruAzleaUmairah\\AssignmentGrp\\fileInput1test.mdb";
-    fileInputName = "C:\\NuruAzleaUmairah\\AssignmentGrp\\fileInput1.mdb";
+    fileInputName = "C:\\AssignmentGrp\\fileInput1test.mdb";
+    fileInputName = "C:\\AssignmentGrp\\fileInput1.mdb";
 
     fileOutputName = "fileOutput1test.txt";
     fileOutputName = "fileOutput1.txt";
@@ -85,6 +85,10 @@ vector<string> columnHeaders; // Store column headers separately
 vector<vector<string>> table; // Store table rows only
 vector<string> globalColumnNames; // Global variable for column names
 
+
+//separate column names and their data types
+vector<pair<string, string>> columns;
+
 // Function to handle CREATE TABLE command
 void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &tableName, const string &command) {
     fileOutput << "> " << command << endl;
@@ -107,24 +111,30 @@ void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &t
     stringstream ss(columnsStr);
     string column;
     columnHeaders.clear();
+    columns.clear();
 
     while (getline(ss, column, ',')) {
         // Remove whitespace and data types
         column.erase(remove(column.begin(), column.end(), ' '), column.end());
-        size_t typePos = column.find("INT");
-        if (typePos == string::npos) typePos = column.find("TEXT");
+        size_t typePos = column.find_first_of("INTTEXT");
+
         if (typePos != string::npos) {
-            column = column.substr(0, typePos); // Keep only the column name
+            string columnName = column.substr(0, typePos);
+            string columnType = column.substr(typePos);
+            columns.emplace_back(columnName, columnType);
+            columnHeaders.push_back(columnName);
         }
-        columnHeaders.push_back(column);
     }
 
     table.clear(); // Clear table data
-    fileOutput << "Table created with columns: ";
-    for (const auto &col : columnHeaders) {
-        fileOutput << col << " ";
+    fileOutput << "Table \"" << tableName << "\" created with columns: ";
+    for (size_t i= 0; i < columnHeaders.size(); ++i){
+        fileOutput << columns[i].first << " " << columns[i].second;
+        if (i < columns.size() -1) {
+            fileOutput << ", ";
+        }
     }
-    fileOutput << endl;
+    fileOutput << "." << endl;
 }
 
 // Function to handle INSERT INTO command
