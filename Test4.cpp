@@ -24,7 +24,7 @@ int main() {
     //fileInputName = "C:\\AssignmentGrp\\fileInput1.mdb";
 
     fileOutputName = "fileOutput1test.txt";
-    //fileOutputName = "fileOutput1.txt";
+//    fileOutputName = "fileOutput1.txt";
 
     vector<vector<string>> table; // Represents the table
     string tableName; // Stores the name of the current table
@@ -127,25 +127,24 @@ void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &t
     }
 
     table.clear(); // Clear table data
-    fileOutput << "Table \"" << tableName << "\" created with columns: ";
-    for (size_t i= 0; i < columnHeaders.size(); ++i){
-        fileOutput << columns[i].first << " " << columns[i].second;
-        if (i < columns.size() -1) {
-            fileOutput << ", ";
-        }
-    }
-    fileOutput << "." << endl;
+    //fileOutput << "Table \"" << tableName << "\" created with columns: ";
+//    for (size_t i= 0; i < columnHeaders.size(); ++i){
+//        fileOutput << columns[i].first << " " << columns[i].second;
+//        if (i < columns.size() -1) {
+//            fileOutput << ", ";
+//        }
+//    }
+    //fileOutput << "." << endl;
 }
 
 void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command) {
     fileOutput << "> " << command << endl;
 
-    // Extract column names from INSERT INTO
     size_t start = command.find("(");
     size_t end = command.find(")", start);
     if (start != string::npos && end != string::npos) {
-        string columnNamesStr = command.substr(start + 1, end - start - 1);
-        if (globalColumnNames.empty()) { // Update only if not set
+        string columnNamesStr = command.substr(start + 1, end - 1);
+        if (globalColumnNames.empty()) {
             stringstream ss(columnNamesStr);
             string column;
             while (getline(ss, column, ',')) {
@@ -155,7 +154,6 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
         }
     }
 
-    // Extract values
     size_t valuesStart = command.find("VALUES") + 6;
     string valuesStr = command.substr(valuesStart);
     valuesStr.erase(remove(valuesStr.begin(), valuesStr.end(), '('), valuesStr.end());
@@ -168,13 +166,11 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
     bool isValid = true;
 
     while (getline(ss, value, ',')) {
-        value.erase(remove(value.begin(), value.end(), '\''), value.end());
+        value.erase(remove(value.begin(), value.end(), ' '), value.end());
 
-        // Validate data type based on the column name
         string columnName = globalColumnNames[columnIndex];
         string columnType;
 
-        // Find the column's data type
         for (const auto &col : columns) {
             if (col.first == columnName) {
                 columnType = col.second;
@@ -182,28 +178,35 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
             }
         }
 
-        // Perform type checking
         if (columnType == "INT") {
             try {
-                stoi(value); // Try to convert to integer
+                stoi(value);
             } catch (invalid_argument &) {
                 fileOutput << "Error: Column " << columnName << " expects INT but got '" << value << "'." << endl;
                 isValid = false;
-                break; // Stop further validation
+                break;
             }
         } else if (columnType == "TEXT") {
-            // No validation needed for TEXT
+            // Ensure the value is enclosed in single quotes
+            if (value.front() != '\'' || value.back() != '\'') {
+                fileOutput << "Error: Column " << columnName << " expects TEXT enclosed in single quotes but got '" << value << "'." << endl;
+                isValid = false;
+                break;
+            } else {
+                // Remove the enclosing single quotes
+                value = value.substr(1, value.size() - 2);
+            }
         }
 
         row.push_back(value);
         columnIndex++;
     }
 
-    // Only add the row if all values are valid
     if (isValid) {
         table.push_back(row);
     }
 }
+
 
 
 
