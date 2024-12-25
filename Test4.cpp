@@ -21,10 +21,10 @@ int main() {
     string fileOutputName;
 
     fileInputName = "C:\\AssignmentGrp\\fileInput1test.mdb";
-    fileInputName = "C:\\AssignmentGrp\\fileInput1.mdb";
+    //fileInputName = "C:\\AssignmentGrp\\fileInput1.mdb";
 
     fileOutputName = "fileOutput1test.txt";
-    fileOutputName = "fileOutput1.txt";
+    //fileOutputName = "fileOutput1.txt";
 
     vector<vector<string>> table; // Represents the table
     string tableName; // Stores the name of the current table
@@ -137,7 +137,6 @@ void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &t
     fileOutput << "." << endl;
 }
 
-// Function to handle INSERT INTO command
 void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command) {
     fileOutput << "> " << command << endl;
 
@@ -165,14 +164,48 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
     stringstream ss(valuesStr);
     string value;
     vector<string> row;
+    size_t columnIndex = 0;
+    bool isValid = true;
 
     while (getline(ss, value, ',')) {
         value.erase(remove(value.begin(), value.end(), '\''), value.end());
+
+        // Validate data type based on the column name
+        string columnName = globalColumnNames[columnIndex];
+        string columnType;
+
+        // Find the column's data type
+        for (const auto &col : columns) {
+            if (col.first == columnName) {
+                columnType = col.second;
+                break;
+            }
+        }
+
+        // Perform type checking
+        if (columnType == "INT") {
+            try {
+                stoi(value); // Try to convert to integer
+            } catch (invalid_argument &) {
+                fileOutput << "Error: Column " << columnName << " expects INT but got '" << value << "'." << endl;
+                isValid = false;
+                break; // Stop further validation
+            }
+        } else if (columnType == "TEXT") {
+            // No validation needed for TEXT
+        }
+
         row.push_back(value);
+        columnIndex++;
     }
 
-    table.push_back(row); // Add the new row
+    // Only add the row if all values are valid
+    if (isValid) {
+        table.push_back(row);
+    }
 }
+
+
 
 // Function to handle SELECT * FROM command
 void select_all_from_table_in_csv_mode(ofstream &fileOutput, const vector<vector<string>> &table, const string &tableName) {
