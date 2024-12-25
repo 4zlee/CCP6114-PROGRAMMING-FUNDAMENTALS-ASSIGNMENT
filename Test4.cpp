@@ -1,3 +1,20 @@
+// *********************************************************
+// Program: TC3L_G04.cpp
+// Course: CCP6114 Programming Fundamentals
+// Lecture Class: TC3L
+// Tutorial Class: TT5L
+// Trimester: 2430
+// Member_1: 242UC244Q9 | NURUL AZLEA UMAIRAH BINTI MOHD AZMAN | NURUL.AZLEA.UMAIRAH@student.mmu.edu.my | 010-958 4438
+// Member_2: 242UC244QP | NURUL FAZLINA ZAFUAN BINTI IDRUS | NURUL.FAZLINA.ZAFUAN@student.mmu.edu.my | 017-330 5877
+// Member_3: 242UC244TP | SITI HAJAR BINTI MOHD ROZAIDDIN | SITI.HAJAR.MOHD@student.mmu.edu.my | 019-261 5560
+// Member_4: 242UC241GC | SITI UMAIRAH BINTI MOHD ROZAIDDIN | SITI.UMAIRAH.MOHD@student.mmu.edu.my | 019-211 5560
+// *********************************************************
+// Task Distribution
+// Member_1: Created the base code and command handling.
+// Member_2: Created the INSERT INTO table function.
+// Member_3: Created the CREATE TABLE function.
+// Member_4: Created the data type validation feature and clean-up the codes.
+// *********************************************************
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -20,11 +37,13 @@ int main() {
     string fileInputName;
     string fileOutputName;
 
-    fileInputName = "C:\\AssignmentGrp\\fileInput1test.mdb";
-    //fileInputName = "C:\\AssignmentGrp\\fileInput1.mdb";
+    fileInputName = "C:\\NuruAzleaUmairah\\AssignmentGrp\\fileInput1.mdb";
+    fileInputName = "C:\\NuruAzleaUmairah\\AssignmentGrp\\fileInput2.mdb";
+    fileInputName = "C:\\NuruAzleaUmairah\\AssignmentGrp\\fileInput3.mdb";
 
-    fileOutputName = "fileOutput1test.txt";
-//    fileOutputName = "fileOutput1.txt";
+    fileOutputName = "fileOutput1.txt";
+    fileOutputName = "fileOutput2.txt";
+    fileOutputName = "fileOutput3.txt";
 
     vector<vector<string>> table; // Represents the table
     string tableName; // Stores the name of the current table
@@ -56,7 +75,7 @@ int main() {
                 } else if (has_substring(accumulatedCommand, "SELECT *")) {
                     select_all_from_table_in_csv_mode(fileOutput, table, tableName);
                 } else if (has_substring(accumulatedCommand, "CREATE")) {
-                    fileOutput << "> " << accumulatedCommand << endl;
+                    fileOutput << "> CREATE " << fileOutputName << endl; //Made it easier to output the file name
                 } else if (has_substring(accumulatedCommand, "DATABASES;")) {
                     fileOutput << "> " << accumulatedCommand << endl;
                     fileOutput << fileInputName << endl;
@@ -143,7 +162,7 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
     size_t start = command.find("(");
     size_t end = command.find(")", start);
     if (start != string::npos && end != string::npos) {
-        string columnNamesStr = command.substr(start + 1, end - 1);
+        string columnNamesStr = command.substr(start + 1, end - start - 1);
         if (globalColumnNames.empty()) {
             stringstream ss(columnNamesStr);
             string column;
@@ -156,8 +175,15 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
 
     size_t valuesStart = command.find("VALUES") + 6;
     string valuesStr = command.substr(valuesStart);
+
+    // Remove parentheses
     valuesStr.erase(remove(valuesStr.begin(), valuesStr.end(), '('), valuesStr.end());
     valuesStr.erase(remove(valuesStr.begin(), valuesStr.end(), ')'), valuesStr.end());
+
+    // Remove trailing semicolon
+    if (!valuesStr.empty() && valuesStr.back() == ';') {
+        valuesStr.pop_back();
+    }
 
     stringstream ss(valuesStr);
     string value;
@@ -198,17 +224,14 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
             }
         }
 
-        row.push_back(value);
+        row.push_back(value); // Add the cleaned value to the row
         columnIndex++;
     }
 
     if (isValid) {
-        table.push_back(row);
+        table.push_back(row); // Add the row to the table if all values are valid
     }
 }
-
-
-
 
 // Function to handle SELECT * FROM command
 void select_all_from_table_in_csv_mode(ofstream &fileOutput, const vector<vector<string>> &table, const string &tableName) {
