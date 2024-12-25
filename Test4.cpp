@@ -37,13 +37,13 @@ int main() {
     string fileInputName;
     string fileOutputName;
 
-    fileInputName = "C:\\NuruAzleaUmairah\\AssignmentGrp\\fileInput1.mdb";
-    fileInputName = "C:\\NuruAzleaUmairah\\AssignmentGrp\\fileInput2.mdb";
-    fileInputName = "C:\\NuruAzleaUmairah\\AssignmentGrp\\fileInput3.mdb";
+    fileInputName = "C:\\AssignmentGrp\\fileInput1.mdb";
+//    fileInputName = "C:\\AssignmentGrp\\fileInput2.mdb";
+//    fileInputName = "C:\\AssignmentGrp\\fileInput3.mdb";
 
     fileOutputName = "fileOutput1.txt";
-    fileOutputName = "fileOutput2.txt";
-    fileOutputName = "fileOutput3.txt";
+//    fileOutputName = "fileOutput2.txt";
+//    fileOutputName = "fileOutput3.txt";
 
     vector<vector<string>> table; // Represents the table
     string tableName; // Stores the name of the current table
