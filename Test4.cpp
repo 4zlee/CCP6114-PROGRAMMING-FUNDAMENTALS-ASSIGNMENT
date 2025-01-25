@@ -1,3 +1,20 @@
+// *********************************************************
+// Program: TC3L_G04.cpp
+// Course: CCP6114 Programming Fundamentals
+// Lecture Class: TC3L
+// Tutorial Class: TT5L
+// Trimester: 2430
+// Member_1: 242UC244Q9 | NURUL AZLEA UMAIRAH BINTI MOHD AZMAN | NURUL.AZLEA.UMAIRAH@student.mmu.edu.my | 010-958 4438
+// Member_2: 242UC244QP | NURUL FAZLINA ZAFUAN BINTI IDRUS | NURUL.FAZLINA.ZAFUAN@student.mmu.edu.my | 017-330 5877
+// Member_3: 242UC244TP | SITI HAJAR BINTI MOHD ROZAIDDIN | SITI.HAJAR.MOHD@student.mmu.edu.my | 019-261 5560
+// Member_4: 242UC241GC | SITI UMAIRAH BINTI MOHD ROZAIDDIN | SITI.UMAIRAH.MOHD@student.mmu.edu.my | 019-211 5560
+// *********************************************************
+// Task Distribution
+// Member_1: Created the base code and command handling.
+// Member_2: Created the INSERT INTO table function.
+// Member_3: Created the CREATE TABLE function.
+// Member_4: Created the data type validation feature and clean-up the codes.
+// *********************************************************
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -20,11 +37,13 @@ int main() {
     string fileInputName;
     string fileOutputName;
 
-    fileInputName = "C:\\AssignmentGrp\\fileInput1test.mdb";
-    //fileInputName = "C:\\AssignmentGrp\\fileInput1.mdb";
+    fileInputName = "C:\\AssignmentGrp\\fileInput1.mdb";
+//    fileInputName = "C:\\AssignmentGrp\\fileInput2.mdb";
+//    fileInputName = "C:\\AssignmentGrp\\fileInput3.mdb";
 
-    fileOutputName = "fileOutput1test.txt";
-    //fileOutputName = "fileOutput1.txt";
+    fileOutputName = "fileOutput1.txt";
+//    fileOutputName = "fileOutput2.txt";
+//    fileOutputName = "fileOutput3.txt";
 
     vector<vector<string>> table; // Represents the table
     string tableName; // Stores the name of the current table
@@ -56,7 +75,7 @@ int main() {
                 } else if (has_substring(accumulatedCommand, "SELECT *")) {
                     select_all_from_table_in_csv_mode(fileOutput, table, tableName);
                 } else if (has_substring(accumulatedCommand, "CREATE")) {
-                    fileOutput << "> " << accumulatedCommand << endl;
+                    fileOutput << "> CREATE " << fileOutputName << endl; //Made it easier to output the file name
                 } else if (has_substring(accumulatedCommand, "DATABASES;")) {
                     fileOutput << "> " << accumulatedCommand << endl;
                     fileOutput << fileInputName << endl;
@@ -127,25 +146,24 @@ void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &t
     }
 
     table.clear(); // Clear table data
-    fileOutput << "Table \"" << tableName << "\" created with columns: ";
-    for (size_t i= 0; i < columnHeaders.size(); ++i){
-        fileOutput << columns[i].first << " " << columns[i].second;
-        if (i < columns.size() -1) {
-            fileOutput << ", ";
-        }
-    }
-    fileOutput << "." << endl;
+    //fileOutput << "Table \"" << tableName << "\" created with columns: ";
+//    for (size_t i= 0; i < columnHeaders.size(); ++i){
+//        fileOutput << columns[i].first << " " << columns[i].second;
+//        if (i < columns.size() -1) {
+//            fileOutput << ", ";
+//        }
+//    }
+    //fileOutput << "." << endl;
 }
 
 void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command) {
     fileOutput << "> " << command << endl;
 
-    // Extract column names from INSERT INTO
     size_t start = command.find("(");
     size_t end = command.find(")", start);
     if (start != string::npos && end != string::npos) {
         string columnNamesStr = command.substr(start + 1, end - start - 1);
-        if (globalColumnNames.empty()) { // Update only if not set
+        if (globalColumnNames.empty()) {
             stringstream ss(columnNamesStr);
             string column;
             while (getline(ss, column, ',')) {
@@ -155,11 +173,17 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
         }
     }
 
-    // Extract values
     size_t valuesStart = command.find("VALUES") + 6;
     string valuesStr = command.substr(valuesStart);
+
+    // Remove parentheses
     valuesStr.erase(remove(valuesStr.begin(), valuesStr.end(), '('), valuesStr.end());
     valuesStr.erase(remove(valuesStr.begin(), valuesStr.end(), ')'), valuesStr.end());
+
+    // Remove trailing semicolon
+    if (!valuesStr.empty() && valuesStr.back() == ';') {
+        valuesStr.pop_back();
+    }
 
     stringstream ss(valuesStr);
     string value;
@@ -168,13 +192,11 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
     bool isValid = true;
 
     while (getline(ss, value, ',')) {
-        value.erase(remove(value.begin(), value.end(), '\''), value.end());
+        value.erase(remove(value.begin(), value.end(), ' '), value.end());
 
-        // Validate data type based on the column name
         string columnName = globalColumnNames[columnIndex];
         string columnType;
 
-        // Find the column's data type
         for (const auto &col : columns) {
             if (col.first == columnName) {
                 columnType = col.second;
@@ -182,30 +204,34 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
             }
         }
 
-        // Perform type checking
         if (columnType == "INT") {
             try {
-                stoi(value); // Try to convert to integer
+                stoi(value);
             } catch (invalid_argument &) {
                 fileOutput << "Error: Column " << columnName << " expects INT but got '" << value << "'." << endl;
                 isValid = false;
-                break; // Stop further validation
+                break;
             }
         } else if (columnType == "TEXT") {
-            // No validation needed for TEXT
+            // Ensure the value is enclosed in single quotes
+            if (value.front() != '\'' || value.back() != '\'') {
+                fileOutput << "Error: Column " << columnName << " expects TEXT enclosed in single quotes but got '" << value << "'." << endl;
+                isValid = false;
+                break;
+            } else {
+                // Remove the enclosing single quotes
+                value = value.substr(1, value.size() - 2);
+            }
         }
 
-        row.push_back(value);
+        row.push_back(value); // Add the cleaned value to the row
         columnIndex++;
     }
 
-    // Only add the row if all values are valid
     if (isValid) {
-        table.push_back(row);
+        table.push_back(row); // Add the row to the table if all values are valid
     }
 }
-
-
 
 // Function to handle SELECT * FROM command
 void select_all_from_table_in_csv_mode(ofstream &fileOutput, const vector<vector<string>> &table, const string &tableName) {
