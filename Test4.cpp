@@ -15,6 +15,7 @@
 // Member_3: Created the CREATE TABLE function.
 // Member_4: Created the data type validation feature and clean-up the codes.
 // *********************************************************
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -29,6 +30,7 @@ void create_output_screen_and_file(ofstream &fileOutput);
 void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &tableName, const string &command);
 void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command);
 void select_all_from_table_in_csv_mode(ofstream &fileOutput, const vector<vector<string>> &table, const string &tableName);
+void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command); // Added delete function prototype
 
 int main() {
     ifstream fileInput;
@@ -38,12 +40,7 @@ int main() {
     string fileOutputName;
 
     fileInputName = "C:\\AssignmentGrp\\fileInput1.mdb";
-//    fileInputName = "C:\\AssignmentGrp\\fileInput2.mdb";
-//    fileInputName = "C:\\AssignmentGrp\\fileInput3.mdb";
-
     fileOutputName = "fileOutput1.txt";
-//    fileOutputName = "fileOutput2.txt";
-//    fileOutputName = "fileOutput3.txt";
 
     vector<vector<string>> table; // Represents the table
     string tableName; // Stores the name of the current table
@@ -74,8 +71,10 @@ int main() {
                     insert_into_table(fileOutput, table, accumulatedCommand);
                 } else if (has_substring(accumulatedCommand, "SELECT *")) {
                     select_all_from_table_in_csv_mode(fileOutput, table, tableName);
+                } else if (has_substring(accumulatedCommand, "DELETE FROM")) { // Handle DELETE command
+                    delete_from_table(fileOutput, table, accumulatedCommand);
                 } else if (has_substring(accumulatedCommand, "CREATE")) {
-                    fileOutput << "> CREATE " << fileOutputName << endl; //Made it easier to output the file name
+                    fileOutput << "> CREATE " << fileOutputName << endl;
                 } else if (has_substring(accumulatedCommand, "DATABASES;")) {
                     fileOutput << "> " << accumulatedCommand << endl;
                     fileOutput << fileInputName << endl;
@@ -103,7 +102,6 @@ bool has_substring(const string &line, const string &substring) {
 vector<string> columnHeaders; // Store column headers separately
 vector<vector<string>> table; // Store table rows only
 vector<string> globalColumnNames; // Global variable for column names
-
 
 //separate column names and their data types
 vector<pair<string, string>> columns;
@@ -146,16 +144,9 @@ void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &t
     }
 
     table.clear(); // Clear table data
-    //fileOutput << "Table \"" << tableName << "\" created with columns: ";
-//    for (size_t i= 0; i < columnHeaders.size(); ++i){
-//        fileOutput << columns[i].first << " " << columns[i].second;
-//        if (i < columns.size() -1) {
-//            fileOutput << ", ";
-//        }
-//    }
-    //fileOutput << "." << endl;
 }
 
+// Function to handle INSERT INTO command
 void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command) {
     fileOutput << "> " << command << endl;
 
@@ -256,5 +247,89 @@ void select_all_from_table_in_csv_mode(ofstream &fileOutput, const vector<vector
             if (i < row.size() - 1) fileOutput << ",";
         }
         fileOutput << endl;
+    }
+}
+
+// Function to handle DELETE FROM command (added function)
+void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command) {
+    fileOutput << "> " << command << endl;
+
+    // Extract table name from the command
+    size_t tableStart = command.find("FROM") + 5;
+    size_t wherePos = command.find("WHERE");
+    if (tableStart == string::npos || wherePos == string::npos) {
+        fileOutput << "Error: Invalid DELETE syntax" << endl;
+        return;
+    }
+
+    // Get the table name
+    string tableName = command.substr(tableStart, wherePos - tableStart);
+    tableName.erase(remove(tableName.begin(), tableName.end(), ' '), tableName.end());
+
+    // Extract condition (where clause)
+    string condition = command.substr(wherePos + 6); // Skipping "WHERE"
+    condition.erase(remove(condition.begin(), condition.end(), ' '), condition.end());
+
+    // Assume the condition is simple: columnName = value
+    size_t equalPos = condition.find("=");
+    if (equalPos == string::npos) {
+        fileOutput << "Error: Invalid condition in DELETE command" << endl;
+        return;
+    }
+
+    string columnName = condition.substr(0, equalPos);
+    string value = condition.substr(equalPos + 1);
+    columnName.erase(remove(columnName.begin(), columnName.end(), ' '), columnName.end());
+    value.erase(remove(value.begin(), value.end(), ' '), value.end());
+
+    // Find the column index in the table
+    int columnIndex = -1;
+    for (size_t i = 0; i < columnHeaders.size(); ++i) {
+        if (columnHeaders[i] == columnName) {
+            columnIndex = i;
+            break;
+        }
+    }
+
+    if (columnIndex == -1) {
+        fileOutput << "Error: Column " << columnName << " does not exist in table " << tableName << endl;
+        return;
+    }
+
+    // Convert value to integer for comparison if column type is INT
+    bool isIntColumn = false;
+    for (const auto &col : columns) {
+        if (col.first == columnName && col.second == "INT") {
+            isIntColumn = true;
+            break;
+        }
+    }
+
+    if (isIntColumn) {
+        try {
+            // Convert string value to integer
+            int intValue = stoi(value);
+            // Delete rows where the column value matches
+            table.erase(remove_if(table.begin(), table.end(),
+                                  [columnIndex, intValue](const vector<string> &row) {
+                                      return stoi(row[columnIndex]) == intValue;
+                                  }),
+                        table.end());
+        } catch (invalid_argument &) {
+            fileOutput << "Error: Invalid INT value '" << value << "'." << endl;
+            return;
+        }
+    } else {
+        // For TEXT columns, check if the value matches the exact string (without quotes)
+        if (value.front() == '\'' && value.back() == '\'') {
+            value = value.substr(1, value.size() - 2); // Remove single quotes
+        }
+
+        // Delete rows where the column value matches
+        table.erase(remove_if(table.begin(), table.end(),
+                              [columnIndex, &value](const vector<string> &row) {
+                                  return row[columnIndex] == value;
+                              }),
+                    table.end());
     }
 }
