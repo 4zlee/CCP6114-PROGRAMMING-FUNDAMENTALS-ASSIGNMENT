@@ -31,6 +31,7 @@ void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &t
 void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command);
 void select_all_from_table_in_csv_mode(ofstream &fileOutput, const vector<vector<string>> &table, const string &tableName);
 void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command); // Added delete function prototype
+void update_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command);
 
 int main() {
     ifstream fileInput;
@@ -73,6 +74,8 @@ int main() {
                     select_all_from_table_in_csv_mode(fileOutput, table, tableName);
                 } else if (has_substring(accumulatedCommand, "DELETE FROM")) { // Handle DELETE command
                     delete_from_table(fileOutput, table, accumulatedCommand);
+                    } else if (has_substring(accumulatedCommand, "UPDATE")) {
+                    update_table(fileOutput, table, accumulatedCommand);
                 } else if (has_substring(accumulatedCommand, "CREATE")) {
                     fileOutput << "> CREATE " << fileOutputName << endl;
                 } else if (has_substring(accumulatedCommand, "DATABASES;")) {
@@ -331,5 +334,98 @@ void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, cons
                                   return row[columnIndex] == value;
                               }),
                     table.end());
+    }
+}
+
+void update_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command) {
+    fileOutput << "> " << command << endl;
+
+    // Parse the command
+    size_t setStart = command.find("SET") + 4;
+    size_t whereStart = command.find("WHERE") + 6;
+
+    if (setStart == string::npos || whereStart == string::npos) {
+        fileOutput << "Error: Invalid UPDATE syntax" << endl;
+        return;
+    }
+
+    // Extract SET and WHERE clauses
+    string setClause = command.substr(setStart, whereStart - setStart - 6);
+    string whereClause = command.substr(whereStart);
+
+    // Parse SET clause
+    size_t equalsPosSet = setClause.find("=");
+    if (equalsPosSet == string::npos) {
+        fileOutput << "Error: Invalid SET condition" << endl;
+        return;
+    }
+    string setColumn = setClause.substr(0, equalsPosSet);
+    string setValue = setClause.substr(equalsPosSet + 1);
+    setColumn.erase(remove(setColumn.begin(), setColumn.end(), ' '), setColumn.end());
+    setValue.erase(remove(setValue.begin(), setValue.end(), ' '), setValue.end());
+
+    if (setValue.front() == '\'' && setValue.back() == '\'') {
+        setValue = setValue.substr(1, setValue.size() - 2); // Remove single quotes
+    }
+
+    // Parse WHERE clause
+    size_t equalsPosWhere = whereClause.find("=");
+    if (equalsPosWhere == string::npos) {
+        fileOutput << "Error: Invalid WHERE condition" << endl;
+        return;
+    }
+    string whereColumn = whereClause.substr(0, equalsPosWhere);
+    string whereValue = whereClause.substr(equalsPosWhere + 1);
+    whereColumn.erase(remove(whereColumn.begin(), whereColumn.end(), ' '), whereColumn.end());
+    whereValue.erase(remove(whereValue.begin(), whereValue.end(), ' '), whereValue.end());
+
+    // Find column indices for SET and WHERE clauses
+    int setColIndex = -1, whereColIndex = -1;
+    for (size_t i = 0; i < columnHeaders.size(); ++i) {
+        if (columnHeaders[i] == setColumn) setColIndex = i;
+        if (columnHeaders[i] == whereColumn) whereColIndex = i;
+    }
+
+    if (setColIndex == -1 || whereColIndex == -1) {
+        fileOutput << "Error: Invalid column name in SET or WHERE clause" << endl;
+        return;
+    }
+
+    // Check column type for WHERE clause
+    bool isIntColumn = false;
+    for (const auto &col : columns) {
+        if (col.first == whereColumn && col.second == "INT") {
+            isIntColumn = true;
+            break;
+        }
+    }
+
+    // Convert whereValue to INT if necessary
+    int intWhereValue = 0;
+    if (isIntColumn) {
+        try {
+            intWhereValue = stoi(whereValue);
+        } catch (invalid_argument &) {
+            fileOutput << "Error: Invalid INT value in WHERE condition" << endl;
+            return;
+        }
+    }
+
+    // Update rows
+    bool found = false;
+    for (auto &row : table) {
+        bool match = (isIntColumn && stoi(row[whereColIndex]) == intWhereValue) ||
+                     (!isIntColumn && row[whereColIndex] == whereValue);
+
+        if (match) {
+            fileOutput << "Before update: " << columnHeaders[setColIndex] << "='" << row[setColIndex] << "'" << endl;
+            row[setColIndex] = setValue;
+            fileOutput << "After update: " << columnHeaders[setColIndex] << "='" << row[setColIndex] << "'" << endl;
+            found = true;
+        }
+    }
+
+    if (!found) {
+        fileOutput << "Error: No matching row found for WHERE " << whereColumn << "=" << whereValue << endl;
     }
 }
