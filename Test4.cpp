@@ -285,6 +285,12 @@ void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, cons
     columnName.erase(remove(columnName.begin(), columnName.end(), ' '), columnName.end());
     value.erase(remove(value.begin(), value.end(), ' '), value.end());
 
+    // Check if value is empty
+    if (value.empty()) {
+        fileOutput << "Error: No value provided for deletion condition." << endl;
+        return;
+    }
+
     // Find the column index in the table
     int columnIndex = -1;
     for (size_t i = 0; i < columnHeaders.size(); ++i) {
@@ -308,10 +314,26 @@ void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, cons
         }
     }
 
+    bool found = false;
+
     if (isIntColumn) {
         try {
             // Convert string value to integer
             int intValue = stoi(value);
+
+            // Check if the value exists in the table before deleting
+            for (const auto &row : table) {
+                if (stoi(row[columnIndex]) == intValue) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                fileOutput << "Error: No matching record found for ID " << intValue << "." << endl;
+                return;
+            }
+
             // Delete rows where the column value matches
             table.erase(remove_if(table.begin(), table.end(),
                                   [columnIndex, intValue](const vector<string> &row) {
@@ -328,6 +350,19 @@ void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, cons
             value = value.substr(1, value.size() - 2); // Remove single quotes
         }
 
+        // Check if the value exists in the table before deleting
+        for (const auto &row : table) {
+            if (row[columnIndex] == value) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            fileOutput << "Error: No matching record found for value '" << value << "'." << endl;
+            return;
+        }
+
         // Delete rows where the column value matches
         table.erase(remove_if(table.begin(), table.end(),
                               [columnIndex, &value](const vector<string> &row) {
@@ -336,6 +371,7 @@ void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, cons
                     table.end());
     }
 }
+
 
 void update_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command) {
     fileOutput << "> " << command << endl;
