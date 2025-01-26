@@ -150,7 +150,6 @@ void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &t
             columnHeaders.push_back(columnName);
         }
     }
-
     savetablename = tableName;
     table.clear(); // Clear table data
 }
@@ -381,7 +380,25 @@ void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, cons
 void count_row(vector<vector<string>> &table, ofstream &fileOutput, const string &command){
 
 fileOutput << "> " << command << endl;
-fileOutput << table.size();
+
+
+size_t tableStart = command.find("FROM") + 5;
+    size_t wherePos = command.find("WHERE");
+    if (tableStart == string::npos) {
+        fileOutput << "Error: Invalid DELETE syntax" << endl;
+        return;
+    }
+    string tableName = command.substr(tableStart, wherePos - tableStart);
+    tableName.erase(remove(tableName.begin(), tableName.end(), ' '), tableName.end());
+    tableName.erase(remove(tableName.begin(), tableName.end(), ';'), tableName.end());
+
+    if (tableName == savetablename){
+    fileOutput << table.size();
+    }
+
+    else{
+        fileOutput << "Error: table name not found";
+    }
 }
 
 void update_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command) {
@@ -393,21 +410,6 @@ void update_table(ofstream &fileOutput, vector<vector<string>> &table, const str
 
     if (setStart == string::npos || whereStart == string::npos) {
         fileOutput << "Error: Invalid UPDATE syntax" << endl;
-        return;
-    }
-
-    size_t tableStart = command.find("UPDATE") + 6;
-    size_t wherePos = command.find("SET");
-    if (tableStart == string::npos) {
-        fileOutput << "Error: Invalid DELETE syntax" << endl;
-        return;
-    }
-    string tableName = command.substr(tableStart, wherePos - tableStart);
-    tableName.erase(remove(tableName.begin(), tableName.end(), ' '), tableName.end());
-    tableName.erase(remove(tableName.begin(), tableName.end(), ';'), tableName.end());
-
-    if (tableName != savetablename){
-        fileOutput << "Error: table name not found" << endl;
         return;
     }
 
