@@ -85,7 +85,7 @@ int main() {
                 } else if (has_substring(accumulatedCommand, "TABLES;")) {
                     fileOutput << "> " << accumulatedCommand << endl;
                     fileOutput << tableName << endl;
-                }else if (has_substring(accumulatedCommand, "SELECT COUNT(*)FROM")) {
+                }else if (has_substring(accumulatedCommand, "SELECT COUNT(*)")) {
                     count_row(table, fileOutput, accumulatedCommand);
                 } else {
                     fileOutput << "Error: Invalid input command - " << accumulatedCommand << endl;
