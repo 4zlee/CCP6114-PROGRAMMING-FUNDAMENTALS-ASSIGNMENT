@@ -109,6 +109,7 @@ bool has_substring(const string &line, const string &substring) {
 vector<string> columnHeaders; // Store column headers separately
 vector<vector<string>> table; // Store table rows only
 vector<string> globalColumnNames; // Global variable for column names
+string savetablename;
 
 //separate column names and their data types
 vector<pair<string, string>> columns;
@@ -150,6 +151,7 @@ void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &t
         }
     }
 
+    savetablename = tableName;
     table.clear(); // Clear table data
 }
 
@@ -391,6 +393,21 @@ void update_table(ofstream &fileOutput, vector<vector<string>> &table, const str
 
     if (setStart == string::npos || whereStart == string::npos) {
         fileOutput << "Error: Invalid UPDATE syntax" << endl;
+        return;
+    }
+
+    size_t tableStart = command.find("UPDATE") + 6;
+    size_t wherePos = command.find("SET");
+    if (tableStart == string::npos) {
+        fileOutput << "Error: Invalid DELETE syntax" << endl;
+        return;
+    }
+    string tableName = command.substr(tableStart, wherePos - tableStart);
+    tableName.erase(remove(tableName.begin(), tableName.end(), ' '), tableName.end());
+    tableName.erase(remove(tableName.begin(), tableName.end(), ';'), tableName.end());
+
+    if (tableName != savetablename){
+        fileOutput << "Error: table name not found" << endl;
         return;
     }
 
