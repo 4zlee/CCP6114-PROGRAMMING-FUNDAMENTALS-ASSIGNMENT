@@ -32,6 +32,7 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
 void select_all_from_table_in_csv_mode(ofstream &fileOutput, const vector<vector<string>> &table, const string &tableName);
 void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command); // Added delete function prototype
 void update_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command);
+void count_row(vector<vector<string>> &table, ofstream &fileOutput, const string &command);
 
 int main() {
     ifstream fileInput;
@@ -84,6 +85,8 @@ int main() {
                 } else if (has_substring(accumulatedCommand, "TABLES;")) {
                     fileOutput << "> " << accumulatedCommand << endl;
                     fileOutput << tableName << endl;
+                }else if (has_substring(accumulatedCommand, "SELECT COUNT(*)FROM")) {
+                    count_row(table, fileOutput, accumulatedCommand);
                 } else {
                     fileOutput << "Error: Invalid input command - " << accumulatedCommand << endl;
                 }
@@ -91,6 +94,7 @@ int main() {
             }
         }
     }
+
 
     fileInput.close();
     fileOutput.close();
@@ -372,6 +376,11 @@ void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, cons
     }
 }
 
+void count_row(vector<vector<string>> &table, ofstream &fileOutput, const string &command){
+
+fileOutput << "> " << command << endl;
+fileOutput << table.size();
+}
 
 void update_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command) {
     fileOutput << "> " << command << endl;
