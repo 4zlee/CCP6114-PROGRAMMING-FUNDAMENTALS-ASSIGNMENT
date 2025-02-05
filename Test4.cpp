@@ -10,10 +10,10 @@
 // Member_4: 242UC241GC | SITI UMAIRAH BINTI MOHD ROZAIDDIN | SITI.UMAIRAH.MOHD@student.mmu.edu.my | 019-211 5560
 // *********************************************************
 // Task Distribution
-// Member_1: Created the base code and command handling.
-// Member_2: Created the INSERT INTO table function.
-// Member_3: Created the CREATE TABLE function.
-// Member_4: Created the data type validation feature and clean-up the codes.
+// Member_1: Created the base code, SELECT * function and command handling.
+// Member_2: Created the INSERT INTO table & DELETE function.
+// Member_3: Created the CREATE TABLE & UPDATE function.
+// Member_4: Created the data type validation feature, SELECT COUNT(*) function and clean-up the codes.
 // *********************************************************
 
 #include <iostream>
@@ -29,7 +29,7 @@ bool has_substring(const string &line, const string &substring);
 void create_output_screen_and_file(ofstream &fileOutput);
 void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &tableName, const string &command);
 void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command);
-void select_all_from_table_in_csv_mode(ofstream &fileOutput, const vector<vector<string>> &table, const string &tableName);
+void select_all_from_table_in_csv_mode(ofstream &fileOutput, const vector<vector<string>> &table, const string &command);
 void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command); // Added delete function prototype
 void update_table(ofstream &fileOutput, vector<vector<string>> &table, const string &command);
 void count_row(vector<vector<string>> &table, ofstream &fileOutput, const string &command);
@@ -42,7 +42,11 @@ int main() {
     string fileOutputName;
 
     fileInputName = "C:\\AssignmentGrp\\fileInput1.mdb";
-    fileOutputName = "fileOutput1.txt";
+//    fileInputName = "C:\\AssignmentGrp\\fileInput2.mdb";
+//    fileInputName = "C:\\AssignmentGrp\\fileInput3.mdb";
+    fileOutputName = "fileInput1.txt";
+//    fileOutputName = "fileInput2.txt";
+//    fileOutputName = "fileInput3.txt";
 
     vector<vector<string>> table; // Represents the table
     string tableName; // Stores the name of the current table
@@ -72,7 +76,7 @@ int main() {
                 } else if (has_substring(accumulatedCommand, "INSERT INTO")) {
                     insert_into_table(fileOutput, table, accumulatedCommand);
                 } else if (has_substring(accumulatedCommand, "SELECT *")) {
-                    select_all_from_table_in_csv_mode(fileOutput, table, tableName);
+                    select_all_from_table_in_csv_mode(fileOutput, table, accumulatedCommand);
                 } else if (has_substring(accumulatedCommand, "DELETE FROM")) { // Handle DELETE command
                     delete_from_table(fileOutput, table, accumulatedCommand);
                     } else if (has_substring(accumulatedCommand, "UPDATE")) {
@@ -150,7 +154,9 @@ void create_table(ofstream &fileOutput, vector<vector<string>> &table, string &t
             columnHeaders.push_back(columnName);
         }
     }
+
     savetablename = tableName;
+
     table.clear(); // Clear table data
 }
 
@@ -233,11 +239,20 @@ void insert_into_table(ofstream &fileOutput, vector<vector<string>> &table, cons
 }
 
 // Function to handle SELECT * FROM command
-void select_all_from_table_in_csv_mode(ofstream &fileOutput, const vector<vector<string>> &table, const string &tableName) {
-    fileOutput << "> SELECT * FROM " << tableName << ";" << endl;
+void select_all_from_table_in_csv_mode(ofstream &fileOutput, const vector<vector<string>> &table, const string &command) {
+    fileOutput << "> " << command << endl;
 
-    if (columnHeaders.empty()) {
-        fileOutput << "Error: Table " << tableName << " does not exist." << endl;
+    size_t tableStart = command.find("FROM") + 5;
+    size_t tableEnd = command.find(";");
+    if (tableStart == string::npos) {
+        fileOutput << "Error: Invalid DELETE syntax" << endl;
+        return;
+    }
+    string tableName = command.substr(tableStart, tableEnd - tableStart);
+    tableName.erase(remove(tableName.begin(), tableName.end(), ' '), tableName.end());
+    tableName.erase(remove(tableName.begin(), tableName.end(), ';'), tableName.end());
+    if (tableName != savetablename){
+        fileOutput << "Error: table name not found" << endl;
         return;
     }
 
@@ -270,10 +285,16 @@ void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, cons
         return;
     }
 
-    // Get the table name
     string tableName = command.substr(tableStart, wherePos - tableStart);
     tableName.erase(remove(tableName.begin(), tableName.end(), ' '), tableName.end());
+    tableName.erase(remove(tableName.begin(), tableName.end(), ';'), tableName.end());
+//    cout << "TableName in DELETE: " << tableName << endl;
+//    cout << "savetablename: " << savetablename << endl;
 
+    if (tableName != savetablename){
+        fileOutput << "Error: table name not found" << endl;
+        return;
+    }
     // Extract condition (where clause)
     string condition = command.substr(wherePos + 6); // Skipping "WHERE"
     condition.erase(remove(condition.begin(), condition.end(), ' '), condition.end());
@@ -379,10 +400,8 @@ void delete_from_table(ofstream &fileOutput, vector<vector<string>> &table, cons
 
 void count_row(vector<vector<string>> &table, ofstream &fileOutput, const string &command){
 
-fileOutput << "> " << command << endl;
-
-
-size_t tableStart = command.find("FROM") + 5;
+    fileOutput << "> " << command << endl;
+    size_t tableStart = command.find("FROM") + 5;
     size_t wherePos = command.find("WHERE");
     if (tableStart == string::npos) {
         fileOutput << "Error: Invalid DELETE syntax" << endl;
@@ -391,11 +410,9 @@ size_t tableStart = command.find("FROM") + 5;
     string tableName = command.substr(tableStart, wherePos - tableStart);
     tableName.erase(remove(tableName.begin(), tableName.end(), ' '), tableName.end());
     tableName.erase(remove(tableName.begin(), tableName.end(), ';'), tableName.end());
-
     if (tableName == savetablename){
     fileOutput << table.size();
     }
-
     else{
         fileOutput << "Error: table name not found";
     }
@@ -410,6 +427,23 @@ void update_table(ofstream &fileOutput, vector<vector<string>> &table, const str
 
     if (setStart == string::npos || whereStart == string::npos) {
         fileOutput << "Error: Invalid UPDATE syntax" << endl;
+        return;
+    }
+
+    size_t tableStart = command.find("UPDATE") + 6;
+    size_t wherePos = command.find("SET");
+    if (tableStart == string::npos) {
+        fileOutput << "Error: Invalid DELETE syntax" << endl;
+        return;
+    }
+    string tableName = command.substr(tableStart, wherePos - tableStart);
+    tableName.erase(remove(tableName.begin(), tableName.end(), ' '), tableName.end());
+    tableName.erase(remove(tableName.begin(), tableName.end(), ';'), tableName.end());
+//    cout << "TableName in update: " << tableName << endl;
+//    cout << "savetablename: " << savetablename << endl;
+
+    if (tableName != savetablename){
+        fileOutput << "Error: table name not found" << endl;
         return;
     }
 
@@ -482,9 +516,9 @@ void update_table(ofstream &fileOutput, vector<vector<string>> &table, const str
                      (!isIntColumn && row[whereColIndex] == whereValue);
 
         if (match) {
-            fileOutput << "Before update: " << columnHeaders[setColIndex] << "='" << row[setColIndex] << "'" << endl;
+            //fileOutput << "Before update: " << columnHeaders[setColIndex] << "='" << row[setColIndex] << "'" << endl;
             row[setColIndex] = setValue;
-            fileOutput << "After update: " << columnHeaders[setColIndex] << "='" << row[setColIndex] << "'" << endl;
+            //fileOutput << "After update: " << columnHeaders[setColIndex] << "='" << row[setColIndex] << "'" << endl;
             found = true;
         }
     }
